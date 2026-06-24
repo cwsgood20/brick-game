@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f1226">
+<title>벽돌깨기 (Brick Breaker)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    background: #0f1226;
+    color: #e8e8ff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+  }
+  #wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: env(safe-area-inset-top) 8px env(safe-area-inset-bottom);
+  }
+  #hud {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    padding: 0 6px;
+  }
+  #hud .label { opacity: .6; font-weight: 400; font-size: 12px; }
+  #hud b { color: #6df2c4; }
+  #stage {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    background: linear-gradient(180deg, #1a1f3d, #11132a);
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: rgba(8, 10, 26, .85);
+    text-align: center;
+    padding: 22px;
+  }
+  #overlay.hidden { display: none; }
+  #overlay h1 { font-size: 26px; font-weight: 800; letter-spacing: 1px; }
+  #overlay p { font-size: 13.5px; opacity: .8; line-height: 1.6; max-width: 300px; }
+  #overlay .big { font-size: 22px; color: #6df2c4; font-weight: 700; }
+
+  .controls { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .ctrl-label { font-size: 12px; opacity: .6; margin-bottom: 2px; }
+
+  /* 난이도 칩 */
+  .chips { display: flex; gap: 8px; }
+  .chip {
+    font: inherit; font-size: 13px; font-weight: 600;
+    color: #cfd2ff; background: rgba(255,255,255,.08);
+    border: 1.5px solid transparent; border-radius: 999px;
+    padding: 8px 16px; cursor: pointer;
+  }
+  .chip.active { color: #0f1226; background: #56c8ff; border-color: #6df2c4; }
+
+  /* 레벨 스테퍼 */
+  .stepper { display: flex; align-items: center; gap: 14px; }
+  .step-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    font-size: 22px; font-weight: 700; line-height: 1;
+    color: #0f1226; background: #e8e8ff; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-btn:active { transform: scale(.92); }
+  .step-val { font-size: 26px; font-weight: 800; min-width: 42px; color: #6df2c4; }
+
+  button.primary {
+    font: inherit; font-weight: 700; font-size: 17px;
+    color: #0f1226;
+    background: linear-gradient(135deg, #6df2c4, #56c8ff);
+    border: none; border-radius: 999px; padding: 13px 44px; cursor: pointer;
+    box-shadow: 0 6px 18px rgba(86,200,255,.35);
+    transition: transform .1s;
+  }
+  button.primary:active { transform: scale(.95); }
+  .hint { font-size: 12px; opacity: .55; text-align: center; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hud">
+    <span><span class="label">점수</span> <b id="score">0</b></span>
+    <span><span class="label">레벨</span> <b id="level">1</b></span>
+    <span><span class="label">생명</span> <b id="lives">♥♥♥</b></span>
+  </div>
+  <div id="stage">
+    <canvas id="game"></canvas>
+    <div id="overlay">
+      <h1 id="ov-title">🧱 벽돌깨기</h1>
+      <p id="ov-sub">패들을 좌우로 움직여 모든 벽돌을 깨세요.</p>
+
+      <div class="controls" id="ov-controls">
+        <div>
+          <div class="ctrl-label">난이도</div>
+          <div class="chips" id="diffChips">
+            <button class="chip" data-diff="easy">쉬움</button>
+            <button class="chip active" data-diff="normal">보통</button>
+            <button class="chip" data-diff="hard">어려움</button>
+          </div>
+        </div>
+        <div>
+          <div class="ctrl-label">시작 레벨</div>
+          <div class="stepper">
+            <button class="step-btn" id="lvDown">−</button>
+            <span class="step-val" id="lvVal">1</span>
+            <button class="step-btn" id="lvUp">＋</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="primary" id="startBtn">시작하기</button>
+      <p class="hint" id="ov-hint">모바일: 화면 드래그 · PC: 마우스/← → 키</p>
+    </div>
+  </div>
+  <p class="hint">화면을 좌우로 움직여 패들을 조작하세요</p>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const stage = document.getElementById('stage');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+  const scoreEl = document.getElementById('score');
+  const levelEl = document.getElementById('level');
+  const livesEl = document.getElementById('lives');
+
+  // 논리 해상도 (3:4). 게임 좌표는 항상 이 기준.
+  const W = 360, H = 480;
+
+  // ---- 레이아웃: 캔버스 크기를 JS로 직접 계산 (aspect-ratio 미사용) ----
+  function layout() {
+    const availW = Math.min(480, window.innerWidth - 16);
+    const availH = window.innerHeight - 110; // HUD + 하단 힌트 여유
+    let w = availW, h = w * 4 / 3;
+    if (h > availH) { h = availH; w = h * 3 / 4; }
+    w = Math.max(200, Math.floor(w));
+    h = Math.max(266, Math.floor(h));
+    stage.style.width = w + 'px';
+    stage.style.height = h + 'px';
+
+    const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', layout);
+  window.addEventListener('orientationchange', layout);
+  layout();
+
+  const COLORS = ['#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#4dabf7', '#b197fc'];
+  const DIFF = { easy: 2.6, normal: 3.4, hard: 4.4 };
+
+  let state = 'ready'; // ready | playing | over | win
+  let score = 0, level = 1, lives = 3;
+  let startLevel = 1, difficulty = 'normal';
+  let paddle, ball, bricks;
+
+  function makePaddle() {
+    const w = difficulty === 'hard' ? 66 : difficulty === 'easy' ? 92 : 78;
+    return { w, h: 14, x: W / 2 - w / 2, y: H - 34, speed: 7 };
+  }
+  function makeBall() {
+    const speed = DIFF[difficulty] + level * 0.3;
+    return { x: W / 2, y: H - 50, r: 7, dx: 0, dy: -speed, speed, stuck: true };
+  }
+  function makeBricks() {
+    const rows = Math.min(3 + level, 9);
+    const cols = 7;
+    const pad = 6, offTop = 44, offLeft = 12;
+    const bw = (W - offLeft * 2 - pad * (cols - 1)) / cols;
+    const bh = 18;
+    const arr = [];
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        arr.push({
+          x: offLeft + c * (bw + pad), y: offTop + r * (bh + pad),
+          w: bw, h: bh, alive: true,
+          color: COLORS[r % COLORS.length], points: (rows - r) * 10
+        });
+    return arr;
+  }
+
+  function startGame() {
+    score = 0;
+    level = startLevel;
+    lives = 3;
+    paddle = makePaddle();
+    ball = makeBall();
+    bricks = makeBricks();
+    updateHud();
+    state = 'playing';
+  }
+  function nextLevel() {
+    level++;
+    paddle = makePaddle();
+    ball = makeBall();
+    bricks = makeBricks();
+    updateHud();
+    state = 'playing';
+  }
+  function loseLife() {
+    lives--;
+    updateHud();
+    if (lives <= 0) {
+      state = 'over';
+      showOverlay('💥 게임 오버', `최종 점수 <span class="big">${score}</span>`, '다시 하기', true);
+    } else {
+      paddle = makePaddle();
+      ball = makeBall();
+    }
+  }
+
+  function updateHud() {
+    scoreEl.textContent = score;
+    levelEl.textContent = level;
+    livesEl.textContent = lives > 0 ? '♥'.repeat(lives) : '–';
+  }
+
+  // ----- 시작 화면 컨트롤 -----
+  const lvVal = document.getElementById('lvVal');
+  const controls = document.getElementById('ov-controls');
+  document.getElementById('lvDown').addEventListener('click', () => {
+    startLevel = Math.max(1, startLevel - 1); lvVal.textContent = startLevel;
+  });
+  document.getElementById('lvUp').addEventListener('click', () => {
+    startLevel = Math.min(10, startLevel + 1); lvVal.textContent = startLevel;
+  });
+  document.querySelectorAll('#diffChips .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#diffChips .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      difficulty = chip.dataset.diff;
+    });
+  });
+
+  function showOverlay(title, sub, btn, showControls) {
+    document.getElementById('ov-title').innerHTML = title;
+    document.getElementById('ov-sub').innerHTML = sub;
+    startBtn.textContent = btn;
+    controls.style.display = showControls ? 'flex' : 'none';
+    document.getElementById('ov-hint').style.display = showControls ? 'block' : 'none';
+    overlay.classList.remove('hidden');
+  }
+
+  startBtn.addEventListener('click', () => {
+    overlay.classList.add('hidden');
+    if (state === 'win') nextLevel();
+    else startGame(); // ready 또는 over
+  });
+
+  // ----- 입력 -----
+  let keyLeft = false, keyRight = false;
+  function movePaddleTo(clientX) {
+    const rect = canvas.getBoundingClientRect();
+    const rel = (clientX - rect.left) / rect.width * W;
+    paddle.x = Math.max(0, Math.min(W - paddle.w, rel - paddle.w / 2));
+  }
+  canvas.addEventListener('mousemove', e => { if (state === 'playing') movePaddleTo(e.clientX); });
+  canvas.addEventListener('mousedown', () => { if (ball) ball.stuck = false; });
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (ball) ball.stuck = false;
+    if (state === 'playing' && e.touches[0]) movePaddleTo(e.touches[0].clientX);
+  }, { passive: false });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (state === 'playing' && e.touches[0]) movePaddleTo(e.touches[0].clientX);
+  }, { passive: false });
+  window.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') keyLeft = true;
+    if (e.key === 'ArrowRight') keyRight = true;
+    if (e.key === ' ' && ball) ball.stuck = false;
+  });
+  window.addEventListener('keyup', e => {
+    if (e.key === 'ArrowLeft') keyLeft = false;
+    if (e.key === 'ArrowRight') keyRight = false;
+  });
+
+  // ----- 업데이트 -----
+  function update() {
+    if (state !== 'playing') return;
+
+    if (keyLeft) paddle.x -= paddle.speed;
+    if (keyRight) paddle.x += paddle.speed;
+    paddle.x = Math.max(0, Math.min(W - paddle.w, paddle.x));
+
+    if (ball.stuck) {
+      ball.x = paddle.x + paddle.w / 2;
+      ball.y = paddle.y - ball.r - 1;
+      return;
+    }
+
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+
+    if (ball.x - ball.r < 0) { ball.x = ball.r; ball.dx *= -1; }
+    if (ball.x + ball.r > W) { ball.x = W - ball.r; ball.dx *= -1; }
+    if (ball.y - ball.r < 0) { ball.y = ball.r; ball.dy *= -1; }
+
+    if (ball.y - ball.r > H) { loseLife(); return; }
+
+    // 패들 충돌
+    if (ball.dy > 0 &&
+        ball.y + ball.r >= paddle.y &&
+        ball.y + ball.r <= paddle.y + paddle.h + 10 &&
+        ball.x >= paddle.x && ball.x <= paddle.x + paddle.w) {
+      const hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+      const angle = Math.max(-1, Math.min(1, hit)) * (Math.PI / 3);
+      const speed = Math.hypot(ball.dx, ball.dy) || ball.speed;
+      ball.dx = Math.sin(angle) * speed;
+      ball.dy = -Math.abs(Math.cos(angle) * speed);
+      ball.y = paddle.y - ball.r - 1;
+    }
+
+    // 벽돌 충돌
+    for (const b of bricks) {
+      if (!b.alive) continue;
+      if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w &&
+          ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
+        b.alive = false;
+        score += b.points;
+        updateHud();
+        const overlapX = Math.min(ball.x + ball.r - b.x, b.x + b.w - (ball.x - ball.r));
+        const overlapY = Math.min(ball.y + ball.r - b.y, b.y + b.h - (ball.y - ball.r));
+        if (overlapX < overlapY) ball.dx *= -1; else ball.dy *= -1;
+        break;
+      }
+    }
+
+    if (bricks.every(b => !b.alive)) {
+      state = 'win';
+      showOverlay('🎉 레벨 클리어!', `점수 <span class="big">${score}</span>`, '다음 레벨 →', false);
+    }
+  }
+
+  // ----- 렌더 -----
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    if (bricks) for (const b of bricks) {
+      if (!b.alive) continue;
+      ctx.fillStyle = b.color; roundRect(b.x, b.y, b.w, b.h, 4); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.18)'; roundRect(b.x, b.y, b.w, b.h / 2.5, 4); ctx.fill();
+    }
+    if (paddle) { ctx.fillStyle = '#e8e8ff'; roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 7); ctx.fill(); }
+    if (ball) { ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fillStyle = '#6df2c4'; ctx.fill(); }
+    if (ball && ball.stuck && state === 'playing') {
+      ctx.fillStyle = 'rgba(232,232,255,.75)';
+      ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('화면을 터치/클릭해서 발사!', W / 2, H / 2);
+    }
+  }
+
+  function loop() { update(); draw(); requestAnimationFrame(loop); }
+  loop();
+})();
+</script>
+</body>
+</html>
