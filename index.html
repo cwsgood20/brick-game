@@ -113,6 +113,12 @@
     z-index: 5;
   }
   #cheer.show { transform: translate(-50%, -50%) scale(1); opacity: .96; }
+  #cheer .catname {
+    background: #1a1f3d; color: #6df2c4;
+    font-size: 13px; font-weight: 800; letter-spacing: .5px;
+    padding: 4px 14px; border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.35);
+  }
   #cheer .face {
     width: 100%; border-radius: 26px; overflow: hidden;
     background: #d9f5ea;
@@ -143,11 +149,12 @@
   <div id="stage">
     <canvas id="game"></canvas>
     <div id="cheer">
+      <div class="catname">🐾 베네스</div>
       <div class="face" id="cheerFace">😺</div>
       <div class="msg" id="cheerMsg"></div>
     </div>
     <div id="overlay">
-      <h1 id="ov-title">🧱 벽돌깨기</h1>
+      <h1 id="ov-title">🧱 베네스 벽돌깨기</h1>
       <p id="ov-sub">패들을 좌우로 움직여 모든 벽돌을 깨세요.</p>
 
       <div class="controls" id="ov-controls">
@@ -222,60 +229,94 @@
 
   // ----- 고양이 응원 (외부 파일 없이 SVG로 직접 그린 단순화 고양이) -----
   // 첨부 사진의 스코티시폴드(접힌 귀·태비 줄무늬·흰 가슴)를 단순화한 일러스트
-  function catSVG(mood) {
+  // 첨부 사진 3장의 느낌을 각각 살린 고양이 머리 + 장면
+  // 실제 사진 느낌: 둥글고 넓은 얼굴, 작고 납작하게 접힌 귀, 도톰한 볼살, 이마 태비 무늬
+  function headMarkup(mood) {
     const happy = mood === 'happy';
     const eyeL = happy
-      ? '<circle cx="37" cy="53" r="9" fill="#f0a830"/><circle cx="37" cy="53" r="4.5" fill="#222"/><circle cx="39.5" cy="50.5" r="1.7" fill="#fff"/>'
-      : '<path d="M28 54 q8.5 -8 17 0" stroke="#222" stroke-width="3.2" fill="none" stroke-linecap="round"/>'; // 윙크(놀리기)
-    const eyeR = '<circle cx="63" cy="53" r="9" fill="#f0a830"/><circle cx="63" cy="53" r="4.5" fill="#222"/><circle cx="65.5" cy="50.5" r="1.7" fill="#fff"/>';
-    const mouthExtra = happy
-      ? '<path d="M43 71 q7 7 14 0" stroke="#7a6f63" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
-      : '<path d="M43 70 q7 6 14 0" stroke="#7a6f63" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
-        + '<path d="M50 72 q4 7 8 4 l-1 6 q-5 1 -7 -4 z" fill="#e98aa0"/>'; // 메롱 혀(놀리기)
-    return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">'
-      + '<ellipse cx="50" cy="56" rx="39" ry="37" fill="#9b9489"/>'                       // 머리
-      + '<path d="M16 40 q-3 -22 24 -24 q-4 14 -13 26 z" fill="#857d72"/>'                 // 왼쪽 접힌 귀
-      + '<path d="M84 40 q3 -22 -24 -24 q4 14 13 26 z" fill="#857d72"/>'                   // 오른쪽 접힌 귀
-      + '<path d="M22 38 q4 -10 16 -12 q-3 9 -8 17 z" fill="#6f685e"/>'                    // 귀 안쪽 그림자
-      + '<path d="M78 38 q-4 -10 -16 -12 q3 9 8 17 z" fill="#6f685e"/>'
-      + '<path d="M50 21 v16" stroke="#6f685e" stroke-width="3.2" stroke-linecap="round"/>'// 이마 줄무늬
-      + '<path d="M41 24 q-2 8 -3 13" stroke="#6f685e" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
-      + '<path d="M59 24 q2 8 3 13" stroke="#6f685e" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
-      + '<ellipse cx="50" cy="70" rx="22" ry="17" fill="#f3efe9"/>'                        // 흰 주둥이/가슴
+      ? '<circle cx="38" cy="57" r="9.5" fill="#f0a830"/><circle cx="38" cy="57.5" r="5" fill="#222"/><circle cx="40.5" cy="54.5" r="1.8" fill="#fff"/>'
+      : '<path d="M29 58 q9 -8 18 0" stroke="#222" stroke-width="3.4" fill="none" stroke-linecap="round"/>'; // 윙크(놀리기)
+    const eyeR = '<circle cx="62" cy="57" r="9.5" fill="#f0a830"/><circle cx="62" cy="57.5" r="5" fill="#222"/><circle cx="64.5" cy="54.5" r="1.8" fill="#fff"/>';
+    const mouth = happy
+      ? '<path d="M43 75 q7 6 14 0" stroke="#7a6f63" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+      : '<path d="M43 74 q7 6 14 0" stroke="#7a6f63" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+        + '<path d="M50 76 q4 7 8 4 l-1 6 q-5 1 -7 -4 z" fill="#e98aa0"/>'; // 메롱 혀(놀리기)
+    return '<ellipse cx="50" cy="55" rx="39" ry="37" fill="#a98a5e"/>'                     // 갈색 털 머리
+      + '<path d="M39 26 C34 17 19 19 17 31 C19 40 29 43 33 38 C37 33 40 31 39 26 Z" fill="#8c6c40"/>' // 왼쪽 접힌 귀
+      + '<path d="M61 26 C66 17 81 19 83 31 C81 40 71 43 67 38 C63 33 60 31 61 26 Z" fill="#8c6c40"/>' // 오른쪽 접힌 귀
+      + '<path d="M32 31 C28 31 25 33 25 36 C28 38 31 37 33 35 Z" fill="#c2a0a6" opacity=".7"/>'        // 귀 안쪽
+      + '<path d="M68 31 C72 31 75 33 75 36 C72 38 69 37 67 35 Z" fill="#c2a0a6" opacity=".7"/>'
+      + '<g fill="none" stroke="#1c1712" stroke-width="3" stroke-linecap="round">'         // 진한 검은색 태비 줄무늬
+      +   '<path d="M50 27 V45"/>'                                                          //  이마 중앙
+      +   '<path d="M43 30 q-2.5 8 -3.5 15"/><path d="M57 30 q2.5 8 3.5 15"/>'              //  안쪽 한 쌍
+      +   '<path d="M34 34 q-3 8 -3 15"/><path d="M66 34 q3 8 3 15"/>'                      //  바깥쪽 한 쌍
+      +   '<path d="M25 49 q-2 6 -4 11"/><path d="M75 49 q2 6 4 11"/>'                      //  관자놀이/볼 옆
+      +   '<path d="M28 60 q-2 4 -5 6"/><path d="M72 60 q2 4 5 6"/>'                        //  볼 아래
+      + '</g>'
+      + '<ellipse cx="50" cy="74" rx="25" ry="17" fill="#ffffff"/>'                         // 완전 흰색 입/주둥이/가슴
       + eyeL + eyeR
-      + '<path d="M46 63 h8 l-4 4.5 z" fill="#d98a96"/>'                                    // 코
-      + mouthExtra
-      + '<g stroke="#efeae3" stroke-width="1.3" stroke-linecap="round" opacity=".9">'      // 수염
-      + '<path d="M40 66 H18"/><path d="M40 69 H20"/><path d="M60 66 H82"/><path d="M60 69 H80"/></g>'
-      + '</svg>';
+      + '<path d="M46 67 h8 l-4 5 z" fill="#d98a96"/>'                                      // 코
+      + mouth
+      + '<g stroke="#efe7d5" stroke-width="1.3" stroke-linecap="round" opacity=".9">'       // 수염
+      + '<path d="M40 70 H15"/><path d="M40 73 H17"/><path d="M60 70 H85"/><path d="M60 73 H83"/></g>';
+  }
+
+  function catSVG(variant, mood) {
+    let scene;
+    if (variant === 1) {
+      // 사진②: 흰 양말 발 모으고 베이지 의자에 앉은 모습
+      scene = headMarkup(mood)
+        + '<rect x="0" y="87" width="100" height="13" fill="#e7dcc4"/>'
+        + '<ellipse cx="50" cy="87" rx="52" ry="6" fill="#efe6d2"/>'
+        + '<g fill="#ffffff" stroke="#dcd6ca" stroke-width="0.8">'
+        + '<rect x="37" y="79" width="11" height="14" rx="5.5"/>'
+        + '<rect x="52" y="79" width="11" height="14" rx="5.5"/></g>'
+        + '<g stroke="#d8d2c6" stroke-width="0.6"><path d="M42.5 92 V85"/><path d="M57.5 92 V85"/></g>';
+    } else if (variant === 2) {
+      // 사진③: 지구본 옆에 앉은 모습
+      scene = '<g transform="translate(15,4) scale(.86)">' + headMarkup(mood) + '</g>'
+        + '<circle cx="17" cy="74" r="13" fill="#4a90d9"/>'
+        + '<path d="M9 68 q6 -3 10 2 q-3 5 -9 4 z" fill="#5bb56a"/>'
+        + '<path d="M18 80 q5 -2 8 2 q-4 4 -9 1 z" fill="#5bb56a"/>'
+        + '<circle cx="17" cy="74" r="13" fill="none" stroke="#2f6aa8" stroke-width="1"/>'
+        + '<path d="M17 87 V94 M11 94 H23" stroke="#333" stroke-width="2" stroke-linecap="round"/>';
+    } else {
+      // 사진①: 초록 박스에 쏙 들어간 모습
+      scene = headMarkup(mood)
+        + '<path d="M16 82 L50 89 L84 82 L84 84 L50 91 L16 84 Z" fill="#2f6f24"/>'
+        + '<rect x="18" y="83" width="64" height="16" rx="2.5" fill="#3a8a2c"/>'
+        + '<rect x="18" y="83" width="64" height="5" fill="#327a26"/>'
+        + '<rect x="30" y="90" width="40" height="7" rx="1.5" fill="#27611d" opacity=".45"/>';
+    }
+    return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' + scene + '</svg>';
   }
 
   const CHEER_MSGS = [
     '냥! 또 깼다! 이러다 벽돌 멸종하겠다냥 😼',
-    '오 좀 치는데? 집사 손가락에 츄르 발렸냥?',
+    '오 좀 치는데? 베네스가 인정한다냥',
     '그렇지! 그거다냥! 벽돌이 울고 있다냥 😹',
     '낮잠 자다 깼는데… 깰 만했다냥 💤',
-    '골골골… 너무 잘해서 내가 다 뿌듯하다냥',
+    '골골골… 베네스가 다 뿌듯하다냥',
     '집사 오늘 좀 멋있다냥. 사진 한 장만 찍자냥 📸',
     '이 속도면 벽돌 가게 문 닫겠다냥 🧱',
-    '와… 방금 거 클립으로 박제할 뻔했다냥',
+    '와… 방금 거 베네스가 박제할 뻔했다냥',
     '재능 발견! 집사 직업 바꿔야 하는 거 아니냥?'
   ];
   const TAUNT_MSGS = [
     '푸하하 그걸 놓치냥? 발이 미끄러졌냥? 😹',
     '공이 도망갔다냥! 안 잡으러 가냥?',
     '괜찮다냥… 원래 집사는 똥손이라냥 🐾',
-    '방금 거 못 본 걸로 해줄게냥. 난 못 봤다냥 🙈',
+    '방금 거 못 본 걸로 해줄게냥. 베네스는 못 봤다냥 🙈',
     '이걸 놓치냥? 오늘 츄르는 압수다냥 😼',
-    '에잇~ 그래도 귀여우니까 한 번 봐준다냥',
+    '에잇~ 그래도 귀여우니까 베네스가 봐준다냥',
     '공: "잘 있어라 집사야~" 😻',
-    '집중! 집중! …이라고 말해주는 고양이는 나뿐이냥'
+    '집중! 집중! …이라고 말해주는 건 베네스뿐이냥'
   ];
 
   const cheerEl = document.getElementById('cheer');
   const cheerFace = document.getElementById('cheerFace');
   const cheerMsg = document.getElementById('cheerMsg');
-  let bricksBroken = 0, cheerTimer = null, soundOn = true;
+  let bricksBroken = 0, cheerTimer = null, soundOn = true, catVariant = 0;
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
   // 음성: Web Speech API로 고양이가 말하기 (한국어, 높은 톤)
@@ -295,7 +336,7 @@
   }
 
   function showToast(mood, msg) {
-    cheerFace.innerHTML = catSVG(mood);
+    cheerFace.innerHTML = catSVG(catVariant++ % 3, mood);
     cheerMsg.textContent = msg;
     cheerEl.classList.add('show');
     speak(msg);
